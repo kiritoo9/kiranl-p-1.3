@@ -1,0 +1,21 @@
+# Ignore Python bytecode
+__pycache__/
+
+# Ignore other Python-related files
+*.pyc
+*.pyo
+*.pyd
+
+# Other common ignores
+.DS_Store
+*.log
+
+# environments
+.env.development
+.env.production
+
+# Other files
+venv/
+
+# files in each pkg
+datasets/**/*.jsonl
