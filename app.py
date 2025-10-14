@@ -2,7 +2,7 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="kiranl-p-1.3 AI reporting")
-    parser.add_argument("-r", "--run", help="Run specific action.", choices=["training", "nlsql"])
+    parser.add_argument("-r", "--run", help="Run specific action.", choices=["training", "nlsql", "dot"])
 
     args = parser.parse_args()
     match args.run.lower():
@@ -17,5 +17,9 @@ if __name__ == "__main__":
             example_prompt: str = "tampilkan total tagihan dan tgl pembayaran untuk lporan tgihan air tahun 2022 dalam bentuk bar chart"
             response = n.run(example_prompt)
             print(response)
+        case "dot":
+            from engines.libs.sim import Sim
+            s = Sim()
+            s.run()
         case _:
             print("command not found!")

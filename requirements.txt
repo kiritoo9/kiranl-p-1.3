@@ -1,4 +1,6 @@
 wordfreq
-Levensthein
+Levenshtein
 numpy
 sentence_transformers
+scikit-learn
+python-dateutil

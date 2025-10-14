@@ -29,6 +29,9 @@ class Training:
             self.main_tables()
             self.columns()
 
+            # phrases training
+            self.phrases()
+
             logs.write("info", "Training data completed!")
         except Exception as e:
             logs.write("error", f"Something went wrong: {str(e)}")
@@ -101,9 +104,36 @@ class Training:
 
         for f in os.listdir(source):
             filename = f.split(".")[0]
-            target = f"{target}/{filename}"
-            os.makedirs(target, exist_ok=True)
+            _target = f"{target}/{filename}"
+            os.makedirs(_target, exist_ok=True)
 
-            self.convertion.train_datasets(self.MODEL, f"{source}/{f}", target, "column_name")
+            self.convertion.train_datasets(self.MODEL, f"{source}/{f}", _target, "column_name")
 
         logs.write("info", "All table schemas successfully embeedded")
+
+
+    def phrases(self):
+        logs.write("info", "Training phrases..")
+        
+        source = f"{self.SOURCE_DIR}/phrases"
+        target = f"{self.TARGET_DIR}/l2norm"
+
+        for f in os.listdir(source):
+            # creating dir
+            filename = f.split(".")[0]
+            _target = f"{target}/{filename}"
+            os.makedirs(_target, exist_ok=True)
+
+            # collecting data
+            with open(f"{source}/{f}", "r") as s:
+                data = [json.loads(v) for v in s if v.strip()]
+                phrases = []
+                canonicals = []
+
+                for v in data:
+                    phrases.extend(v.get("phrases"))
+                    canonicals.extend([v.get("canonical")] * len(phrases))
+
+                self.convertion.train_phrases_set(_target, phrases, canonicals)
+
+        logs.write("info", "Phrases trained!")

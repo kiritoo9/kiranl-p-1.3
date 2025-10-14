@@ -1,9 +1,13 @@
+import os
 import json
+import joblib
 import numpy as np
 import Levenshtein
-from typing import List
 
+from typing import List
 from engines.dtos.emb import Emb as emb_model
+from sklearn.preprocessing import normalize
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 class Convertion:
     TOP_K: int = 2
@@ -43,6 +47,24 @@ class Convertion:
             np.save(f"{target}/keypoints.npy", np.array(_keypoints))
             if len(schemas) > 0:
                 np.save(f"{target}/schemas.npy", np.array(schemas))
+
+
+    def train_phrases_set(self, target: str, phrases, canonicals):
+        # define index based on phrases-length
+        vectorizer = TfidfVectorizer()
+        vectorizer.fit(phrases)
+
+        # transformation and normalization phrases
+        vectors_data_sparse = vectorizer.transform(phrases)
+        vectors_data = vectors_data_sparse.toarray().astype(np.float64) 
+        
+        normalized = normalize(vectors_data, norm='l2', axis=1)
+        conanical_array = np.array(canonicals, dtype=object)
+        
+        # storing vectorizer to keep concistency of index-query-length
+        joblib.dump(vectorizer, os.path.join(target, "tfidf.joblib"))
+        np.save(os.path.join(target, "normalized.npy"), normalized)
+        np.save(os.path.join(target, "conanical.npy"), conanical_array, allow_pickle=True)
 
 
     def find_nearest(self, model, emb, keypoints, words: List[str] = [], treshold: float = 0.0) -> List[emb_model]:
