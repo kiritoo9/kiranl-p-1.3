@@ -9,6 +9,7 @@ model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 class Nlsql:
     LINE_SPARE: int = 100
 
+    corrected_words: str
     serialized_words: List[str] = []
     ctx: pruning_model
 
@@ -18,6 +19,7 @@ class Nlsql:
         try:
             self.serialization(prompt)
             self.pruning()
+            self.rag()
         except Exception as e:
             logs.write("error", f"Something went wrong: {str(e)}")
 
@@ -27,6 +29,8 @@ class Nlsql:
         
         from engines.libs.serialization import Serialization
         fn_ser = Serialization(prompt)
+
+        self.corrected_words = fn_ser.prompt
         self.serialized_words = fn_ser.segmented_prompt
 
         # show logs
@@ -43,13 +47,16 @@ class Nlsql:
         if self.ctx.table_name is None or self.ctx.table_name == "":
             raise ValueError("no-context found!")
 
-        print(self.ctx)
         logs.write("info", "Pruning context completed!")
         print("-" * self.LINE_SPARE)
 
 
     def rag(self):
-        pass
+        logs.write("info", "Start reasoning process..")
+
+        from engines.libs.rag import RAG
+        rag = RAG(self.corrected_words, self.ctx)
+        rag.rag_query()
 
 
     def query(self):

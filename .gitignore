@@ -18,4 +18,4 @@ __pycache__/
 venv/
 
 # files in each pkg
-datasets/**/*.jsonl
+sources/datasets/**/*.jsonl

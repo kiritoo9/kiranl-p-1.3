@@ -6,5 +6,6 @@ class Pruning:
     report_type: str
     value_type: str
     table_name: str
+    table_schema: str
     column_predictions: List[str] = field(default_factory=List)
     column_schemas: List[str] = field(default_factory=List)

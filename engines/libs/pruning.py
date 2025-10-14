@@ -19,6 +19,7 @@ class Pruning:
             report_type=None,
             value_type=None,
             table_name=None,
+            table_schema=None,
             column_predictions=[],
             column_schemas=[]
         )
@@ -84,6 +85,19 @@ class Pruning:
         # set value
         if len(res) > 0:
             self.output.table_name = res[0].value
+
+            # load table schema
+            schemas = np.load(f"{self.SOURCE_PATH}/table_schemas/{self.output.table_name}/schemas.npy")
+            table_schema: str = ""
+            for s in schemas:
+                s = s.split("; ")
+                dt = s[2].split("=")[1]
+
+                schema = f"{s[0]} ({dt}), {s[4]}"
+
+                table_schema += f"{schema}\n"
+            self.output.table_schema = table_schema
+
             logs.write("info", "Table name detected!")
         else:
             logs.write("info", "Table name not detected, user might be ask out of context!")
