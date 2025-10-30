@@ -8,7 +8,21 @@ from rest.handler import Handler
 app = Flask(__name__)
 env = Env()
 handler = Handler()
-CORS(app) 
+CORS(app)
+
+@app.before_request
+def check_authorization():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return jsonify({"error": "Authorization header missing"}), 401
+
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Invalid authorization format"}), 401
+
+    token = auth_header.split("Bearer ")[1]
+    if token != env.API_KEY:
+        return jsonify({"error": "Invalid or expired token"}), 403
+    
 
 @app.route("/generate_report", methods=['POST'])
 def generate_report():

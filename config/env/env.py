@@ -15,6 +15,7 @@ class Env:
     DB_PORT: str
     DB_DRIVER: str
 
+    API_KEY: str
     GROQ_LLM: str
     GROQ_API_KEY: str
 
@@ -33,5 +34,6 @@ class Env:
         self.DB_PORT = os.getenv("DB_PORT")
         self.DB_DRIVER = os.getenv("DB_DRIVER")
 
+        self.API_KEY = os.getenv("API_KEY")
         self.GROQ_LLM = os.getenv("GROQ_LLM")
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY")
