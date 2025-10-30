@@ -1,6 +1,11 @@
 wordfreq
+sentence_transformers
 Levenshtein
 numpy
-sentence_transformers
 scikit-learn
 python-dateutil
+python-dotenv
+groq
+psycopg2-binary
+flask
+Flask-Cors

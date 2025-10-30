@@ -121,7 +121,7 @@ class Pruning:
         for r in res:
             if r.value not in self.output.column_predictions:
                 self.output.column_predictions.append(r.value)
-                self.output.column_schemas.append(schemas[indexes[r.index] - 1])
+                self.output.column_schemas.append(schemas[indexes[r.index]])
 
         if len(res) > 0:
             logs.write("info", f"Found {len(self.output.column_predictions)} columns to select!")

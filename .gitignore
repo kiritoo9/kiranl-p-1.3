@@ -17,5 +17,6 @@ __pycache__/
 # Other files
 venv/
 
-# files in each pkg
+# custom folder and files
 sources/datasets/**/*.jsonl
+history/

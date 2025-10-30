@@ -3,7 +3,8 @@ This document outlines the core steps of the Natural Language to SQL (NL2SQL) en
 
 ## Key Model
 - sentence-transformers/all-MiniLM-L6-v2 (vectorization: dimension=368)
-- models/gemini-2.0-flash-lite (LLM)
+- models/gemini-2.0-flash-lite (Gemini)
+- llama-3.3-70b-versatile (Groq)
 
 ## Embedding and Vector Representation
 This initial phase converts all textual components—the database structure and the user's prompt—into numerical vectors (embeddings) for machine processing.
