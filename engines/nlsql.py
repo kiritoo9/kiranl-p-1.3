@@ -61,19 +61,19 @@ class Nlsql:
     def rag(self):
         logs.write("info", "Start reasoning process..")
 
-        # from engines.libs.rag import RAG
-        # rag = RAG(self.corrected_words, self.ctx)
-        # rag.run_rag()
+        from engines.libs.rag import RAG
+        rag = RAG(self.corrected_words, self.ctx)
+        rag.run_rag()
 
         # get output
         logs.write("info", "RAG process is success!")
-        # self.rag_output = rag.rag_output
+        self.rag_output = rag.rag_output
 
-        self.rag_output = RagSchema(
-            greeting_statements='Saya dengan senang hati membantu Anda dengan permintaan tersebut.', 
-            closing_statements='Terima kasih atas kepercayaan Anda, saya berharap informasi ini membantu.', 
-            filters=[{'field': 'periode_rekening', 'value': '%2022%', 'operator': 'LIKE'}]
-        )
+        # self.rag_output = RagSchema(
+        #     greeting_statements='Saya dengan senang hati membantu Anda dengan permintaan tersebut.', 
+        #     closing_statements='Terima kasih atas kepercayaan Anda, saya berharap informasi ini membantu.', 
+        #     filters=[{'field': 'periode_rekening', 'value': '%2022%', 'operator': 'LIKE'}]
+        # )
 
 
     def query(self):
