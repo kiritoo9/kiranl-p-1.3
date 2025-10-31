@@ -19,6 +19,7 @@
     <script src="https://cdn.amcharts.com/lib/5/percent.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
 
     <style>
         html {
@@ -176,31 +177,14 @@
                     </svg>
                 </button>
             </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label for="filter-single-date" class="block text-sm font-medium text-gray-700">Tanggal
-                        Spesifik</label>
-                    <input type="text" id="filter-single-date" placeholder="Pilih tanggal..."
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
-                <div>
+            <div class="p-6 space-y-4" id="box-filters">
+                <div style="display: hidden;">
                     <label for="filter-range-date" class="block text-sm font-medium text-gray-700">Rentang
                         Tanggal</label>
                     <input type="text" id="filter-range-date" placeholder="Pilih rentang tanggal..."
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
-                <div>
-                    <label for="filter-select-kategori" class="block text-sm font-medium text-gray-700">Kategori</label>
-                    <select id="filter-select-kategori"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="">Semua Kategori</option>
-                        <option value="elektronik">Elektronik</option>
-                        <option value="fashion">Fashion</option>
-                        <option value="rt">Rumah Tangga</option>
-                        <option value="olahraga">Olahraga</option>
-                        <option value="buku">Buku</option>
-                    </select>
-                </div>
+
                 <div>
                     <label for="filter-text-produk" class="block text-sm font-medium text-gray-700">Nama Produk
                         (contains)</label>
@@ -209,10 +193,6 @@
                 </div>
             </div>
             <div class="flex justify-end space-x-3 p-4 bg-gray-50 border-t rounded-b-lg">
-                <button id="cancel-filter-btn"
-                    class="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    Batal
-                </button>
                 <button id="apply-filter-btn"
                     class="bg-blue-500 text-white rounded-md shadow-sm py-2 px-4 text-sm font-medium hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Terapkan
@@ -243,6 +223,8 @@
             "page": 1,
             "size": 10
         }
+
+        var FILTER_APPENDED = [];
 
         // UI global-var
         var am5Root;
@@ -298,6 +280,69 @@
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
 
+        function generateFilter(f) {
+            const type = f?.type?.toUpperCase();
+            let name = f?.name ?? '-';
+            const id = `filter-${name}`;
+            const label = name.replace(/_/g, ' ');
+
+            if (type === "DATE") {
+                const _html = `<div>
+                        <label for="${id}" class="block text-sm font-medium text-gray-700" style="text-transform: capitalize">${label}</label>
+                        <input type="text" id="${id}" placeholder="Pilih tanggal..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>`;
+
+                // append and inject library
+                $("#box-filters").append(_html);
+                flatpickr(`#${id}`, {
+                    mode: "range",
+                    dateFormat: "Y-m-d"
+                });
+                FILTER_APPENDED.push({
+                    name: name,
+                    operator: "BETWEEN",
+                    value: null,
+                    type: f.type.toUpperCase(),
+                    el: id
+                });
+            } else if (["BIGINT", "INT"].includes(type)) {
+                let _options = '';
+                for (const o of ['=', '>', '<', '>=', '<=']) {
+                    _options += `<option value="${o}">${o}</option>`;
+                }
+
+                const _html = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-1/4">
+                            <label for="${id}-operator" class="block text-sm font-medium text-gray-700" style="text-transform: capitalize">
+                                Operator
+                            </label>
+                            <select id="${id}-operator" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">${_options}</select>
+                        </div>
+
+                        <div class="flex-1">
+                            <label for="${id}-val" class="block text-sm font-medium text-gray-700" style="text-transform: capitalize">
+                                ${label}
+                            </label>
+                            <input type="number" id="${id}-val" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                `;
+
+                // append and inject library
+                $("#box-filters").append(_html);
+                FILTER_APPENDED.push({
+                    name: name,
+                    operator: null,
+                    value: null,
+                    type: f.type.toUpperCase(),
+                    el: id
+                });
+            }
+
+            return null;
+        }
+
         function getBotResponse(userMessage) {
             $.ajax({
                 url: `${HOST}/generate_report`,
@@ -333,6 +378,11 @@
                     if (TABLE_FILTERS.id && greetingMsg && closingMsg && rows.length > 0) {
                         addChatMessage(greetingMsg, 'bot');
                         showTypingIndicator();
+
+                        // generating filters
+                        const baseFilters = response?.data?.filters ?? [];
+                        $("#box-filters").html(''); // clean filters
+                        for (const f of baseFilters) generateFilter(f);
 
                         // populating data
                         tableData = rows;
@@ -401,6 +451,13 @@
             }
         }
 
+        function formatValue(value) {
+            if (Number.isInteger(value)) {
+                return numeral(value).format('0,0');
+            }
+            return value;
+        }
+
         function initializeDataTable() {
             if (currentDataTable) currentDataTable.destroy();
 
@@ -463,6 +520,8 @@
                                 const rows = resp.rows;
                                 const totalRecords = params.total_page * params.size;
 
+                                // update rows
+                                $('#chart-loader').addClass('hidden');
                                 callback({
                                     draw: data.draw,
                                     recordsTotal: totalRecords,
@@ -471,6 +530,7 @@
                                 });
                             },
                             error: function(xhr) {
+                                $('#chart-loader').addClass('hidden');
                                 addChatMessage(ERR_MSG.NO_CONTEXT, 'bot');
                                 callback({
                                     draw: data.draw,
@@ -491,7 +551,14 @@
                         data: tableData
                     });
                 },
-                columns: columns,
+                columns: columns.map(col => ({
+                    data: col.data,
+                    title: col.title,
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).removeClass('dt-right').addClass('text-left');
+                    },
+                    render: (value) => formatValue(value)
+                })),
             });
         }
 
@@ -710,34 +777,45 @@
             });
 
             $('#apply-filter-btn').on('click', function() {
-                const singleDate = $('#filter-single-date').val();
-                const rangeDate = $('#filter-range-date').val();
-                const kategori = $('#filter-select-kategori').val();
-                const produk = $('#filter-text-produk').val();
+                // clean filters
+                TABLE_FILTERS.filters = [];
 
-                console.log("Filter diterapkan!");
-                console.log({
-                    singleDate,
-                    rangeDate,
-                    kategori,
-                    produk
-                });
+                for (const f of FILTER_APPENDED) {
+                    const val = $(`#${f?.el}`).val();
+                    const type = f?.type ?? '-';
 
+                    if (f?.type === "DATE") {
+                        const arrVal = val.split(" - ");
+                        if (arrVal.length >= 2) {
+                            TABLE_FILTERS.filters.push({
+                                name: f.name,
+                                operator: f.operator,
+                                value: [arrVal[0].trim(), arrVal[1].trim()]
+                            });
+                        }
+                    } else if (['BIGINT', 'INT'].includes(type)) {
+                        const op = $(`#${f?.el}-operator`).val();
+                        const val = $(`#${f?.el}-val`).val();
+                        if (op && val) {
+                            TABLE_FILTERS.filters.push({
+                                name: f.name,
+                                operator: op,
+                                value: parseInt(val)
+                            });
+                        }
+                    }
+                }
+
+                // re-generate table
                 $('#filter-modal').addClass('hidden');
-                addChatMessage("Filter data telah diterapkan.", 'user');
-                getBotResponse(`Tampilkan data dengan filter baru: Kategori ${kategori || 'semua'}`);
+                $('#chart-loader').removeClass('hidden');
+                setTimeout(() => {
+                    currentDataTable.ajax.reload(null, true);
+                }, 1000);
             });
 
+            // init library for date
             flatpickr.localize(flatpickr.l10ns.id);
-            flatpickr("#filter-single-date", {
-                dateFormat: "d/m/Y"
-            });
-
-            flatpickr("#filter-range-date", {
-                mode: "range",
-                dateFormat: "d/m/Y"
-            });
-
         });
     </script>
 </body>

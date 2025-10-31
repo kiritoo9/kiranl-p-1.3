@@ -11,7 +11,7 @@ from engines.dtos.pruning import Pruning as PruningSchema
 from engines.dtos.rag import RagSchema
 
 class Query:
-    MAX_DATA_LIMIT: int = 50
+    MAX_DATA_LIMIT: int = 100
     DATA_LIMIT: int = 10
 
     QUERY_ROWS: str
@@ -23,6 +23,9 @@ class Query:
         self.ctx = ctx
         self.rag = rag
         self.output = None
+
+        if self.ctx.report_type != "table":
+            self.DATA_LIMIT = 50
 
 
     def generate_query(self):

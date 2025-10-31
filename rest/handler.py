@@ -7,12 +7,17 @@ from typing import List
 from datetime import datetime
 from engines.nlsql import Nlsql
 from config.db.conn import db_conn
+from utils.format import validate_output
 
 class Handler:
     cls_nlsql = Nlsql()
 
     def nl2sql(self, prompt: str):
         response = self.cls_nlsql.run(prompt)
+
+        if response.get("data").get("rows") is not None:
+            rows = validate_output(response.get("data").get("rows"))
+            response["data"]["rows"] = rows
 
         return response
     
@@ -33,7 +38,7 @@ class Handler:
                     rows.append(col)
 
                 return rows
-    
+            
 
     def change_context(self, body):
         # check history by ctx-id
@@ -103,7 +108,7 @@ class Handler:
                     total_page = math.ceil(count / size)
                     
                 output = {
-                    "rows": rows,
+                    "rows": validate_output(rows),
                     "parameters": {
                         "page": page,
                         "total_page": total_page,
