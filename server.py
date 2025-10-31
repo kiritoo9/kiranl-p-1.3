@@ -5,13 +5,16 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from rest.handler import Handler
 
-app = Flask(__name__)
 env = Env()
 handler = Handler()
-CORS(app)
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.before_request
 def check_authorization():
+    if request.method == 'OPTIONS':
+        return '', 200
+
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         return jsonify({"error": "Authorization header missing"}), 401
