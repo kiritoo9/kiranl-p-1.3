@@ -153,6 +153,7 @@ class Query:
             w.write(json.dumps({
                 "table_name": self.ctx.table_name,
                 "columns": self.ctx.column_predictions,
+                "filters": filters,
                 "query_history": [{str(now): [self.QUERY_ROWS, self.QUERY_COUNT]}]
             }, indent=4))
 

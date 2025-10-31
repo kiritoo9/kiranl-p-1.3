@@ -7,18 +7,23 @@ from typing import List
 from datetime import datetime
 from engines.nlsql import Nlsql
 from config.db.conn import db_conn
-from utils.format import validate_output
+from utils.format import validate_output, generate_axis
 
 class Handler:
     cls_nlsql = Nlsql()
 
     def nl2sql(self, prompt: str):
         response = self.cls_nlsql.run(prompt)
+        axis = None
 
         if response.get("data").get("rows") is not None:
             rows = validate_output(response.get("data").get("rows"))
             response["data"]["rows"] = rows
 
+        if response.get("data").get("filters") is not None:
+            axis = generate_axis(response.get("data").get("filters"))
+
+        response["data"]["axis"] = axis
         return response
     
 
@@ -108,6 +113,7 @@ class Handler:
                     total_page = math.ceil(count / size)
                     
                 output = {
+                    "axis": generate_axis(content.get("filters")),
                     "rows": validate_output(rows),
                     "parameters": {
                         "page": page,

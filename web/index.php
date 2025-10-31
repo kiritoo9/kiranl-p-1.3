@@ -127,7 +127,6 @@
                                 <option value="table" selected>Table</option>
                                 <option value="bar">Bar Chart</option>
                                 <option value="line">Line Chart</option>
-                                <option value="pie">Pie Chart</option>
                             </select>
                         </div>
                         <button id="filter-btn"
@@ -230,9 +229,14 @@
         var am5Root;
         var currentChart;
         var currentDataTable;
-        var pieData, barData, lineData, tableData;
+        var tableData;
         var appInitialized = false;
         var tableInitialized = false;
+        var reportTypeActive = 'table';
+        var chartAxis = {
+            x: null,
+            y: []
+        }
         const ERR_MSG = {
             NO_CONTEXT: 'Maaf aku tidak mengenali permintaanmu :( \n\nApakah kamu salah mengetikan sesuatu?'
         }
@@ -363,6 +367,7 @@
                     let closingMsg = "";
                     const rows = response?.data?.rows ?? [];
                     TABLE_FILTERS.id = response?.data?.id ?? null;
+                    if (response?.data?.axis !== undefined) chartAxis = response.data.axis; // regist axis to global
 
                     if (response?.data?.parameters !== undefined) {
                         TABLE_PARAMS = {
@@ -394,7 +399,28 @@
                             // showing report
                             $('#btn-action').show();
                             addChatMessage(closingMsg, 'bot');
-                            showReport('table');
+
+                            // report type
+                            let rt = 'table';
+                            const reportType = response?.report_type?.toLowerCase() ?? 'table';
+
+                            if (reportType === "bar_chart") {
+                                rt = "bar";
+                            } else if (reportType === "line_chart") {
+                                rt = "line";
+                            }
+
+                            // check axis
+                            if (!chartAxis.x || chartAxis.y.length <= 0) {
+                                rt = "table"; // force to table
+
+                                // hide option to change into chart
+                                for (const op of ['bar', 'line'])
+                                    $(`#report-switcher option[value="${op}"]`).prop('disabled', true);
+                            }
+
+                            $("#report-switcher").val(rt).change();
+                            showReport(rt);
                         }, 500);
                     } else {
                         throw new Error();
@@ -416,6 +442,7 @@
         }
 
         function showReport(type) {
+            reportTypeActive = type;
             if (type === 'table') {
                 $('#chart-container').hide();
                 $('#table-container').show();
@@ -424,30 +451,12 @@
                 $('#table-container').hide();
                 $('#chart-container').show();
 
-                if (currentChart) {
-                    currentChart.dispose();
-                }
-
-                if (type === 'pie') {
-                    currentChart = createPieChart(pieData);
-                } else if (type === 'bar') {
-                    currentChart = createBarChart(barData);
+                if (currentChart) currentChart.dispose();
+                if (type === 'bar') {
+                    currentChart = createChart('bar');
                 } else if (type === 'line') {
-                    currentChart = createLineChart(lineData);
+                    currentChart = createChart('line');
                 }
-            }
-        }
-
-        function updateDashboard() {
-            const currentType = $('#report-switcher').val();
-            if (currentType === 'table') {
-                if (currentDataTable) {
-                    currentDataTable.ajax.reload(null, false);
-                } else {
-                    initializeDataTable();
-                }
-            } else {
-                showReport(currentType);
             }
         }
 
@@ -519,6 +528,7 @@
 
                                 const rows = resp.rows;
                                 const totalRecords = params.total_page * params.size;
+                                tableData = rows;
 
                                 // update rows
                                 $('#chart-loader').addClass('hidden');
@@ -562,46 +572,35 @@
             });
         }
 
-        function createPieChart(data) {
-            let chart = am5Root.container.children.push(
-                am5percent.PieChart.new(am5Root, {
-                    layout: am5Root.verticalLayout,
-                    innerRadius: am5.percent(50)
-                })
-            );
+        function createChart(chartType = 'bar') {
+            // another preventive action
+            if (!chartType || !chartAxis.x || chartAxis.y.length <= 0) return;
+            let data = tableData;
 
-            let series = chart.series.push(
-                am5percent.PieSeries.new(am5Root, {
-                    valueField: "value",
-                    categoryField: "category",
-                    alignLabels: false
-                })
-            );
-
-            series.labels.template.setAll({
-                textType: "circular",
-                centerX: 0,
-                centerY: 0,
-                fill: am5.color(0x333333),
-                fontSize: 15
+            // converting date into date-object
+            data.forEach(d => {
+                if (d[chartAxis.x]) d[chartAxis.x] = new Date(d[chartAxis.x]);
             });
 
-            series.ticks.template.set("forceHidden", true);
-            series.data.setAll(data);
-            series.appear(1000, 100);
+            // grouping data
+            const grouped = {};
+            data.forEach(d => {
+                const dateKey = d[chartAxis.x].toISOString().split('T')[0];
+                if (!grouped[dateKey]) grouped[dateKey] = {};
+                chartAxis.y.forEach(yField => {
+                    if (!grouped[dateKey][yField]) grouped[dateKey][yField] = 0;
+                    grouped[dateKey][yField] += d[yField] || 0;
+                });
+            });
 
-            let legend = chart.children.push(am5.Legend.new(am5Root, {
-                centerX: am5.percent(50),
-                x: am5.percent(50),
-                marginTop: 15,
-                marginBottom: 15
-            }));
-            legend.data.setAll(series.dataItems);
+            const chartData = Object.keys(grouped)
+                .sort((a, b) => new Date(a) - new Date(b))
+                .map(date => ({
+                    [chartAxis.x]: new Date(date),
+                    ...grouped[date]
+                }));
 
-            return chart;
-        }
-
-        function createBarChart(data) {
+            // start initiating chart
             let chart = am5Root.container.children.push(
                 am5xy.XYChart.new(am5Root, {
                     panX: false,
@@ -612,108 +611,105 @@
             );
 
             let xAxis = chart.xAxes.push(
-                am5xy.CategoryAxis.new(am5Root, {
-                    categoryField: "category",
-                    renderer: am5xy.AxisRendererX.new(am5Root, {
-                        minGridDistance: 20
-                    }),
-                    tooltip: am5.Tooltip.new(am5Root, {})
-                })
-            );
-            xAxis.data.setAll(data);
-
-            let yAxis = chart.yAxes.push(
-                am5xy.ValueAxis.new(am5Root, {
-                    renderer: am5xy.AxisRendererY.new(am5Root, {}),
-                    min: 0
-                })
-            );
-
-            let series = chart.series.push(
-                am5xy.ColumnSeries.new(am5Root, {
-                    name: "Sales",
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                    valueYField: "sales",
-                    categoryXField: "category",
-                    sequencedInterpolation: true,
-                    tooltip: am5.Tooltip.new(am5Root, {
-                        pointerOrientation: "vertical",
-                        labelText: "[bold]{categoryX}:[/] {valueY}"
-                    })
-                })
-            );
-
-            series.columns.template.setAll({
-                cornerRadiusTL: 5,
-                cornerRadiusTR: 5,
-                strokeOpacity: 0,
-                fontSize: 15
-            });
-
-            series.data.setAll(data);
-            series.appear();
-            chart.appear(1000, 100);
-            return chart;
-        }
-
-        function createLineChart(data) {
-            let chart = am5Root.container.children.push(
-                am5xy.XYChart.new(am5Root, {
-                    panX: true,
-                    panY: true,
-                    wheelX: "panX",
-                    wheelY: "zoomX",
-                    pinchZoomX: true
-                })
-            );
-
-            let xAxis = chart.xAxes.push(
-                am5xy.CategoryAxis.new(am5Root, {
-                    categoryField: "month",
+                am5xy.DateAxis.new(am5Root, {
+                    maxDeviation: 0.3,
+                    baseInterval: {
+                        timeUnit: "day",
+                        count: 1
+                    },
                     renderer: am5xy.AxisRendererX.new(am5Root, {}),
                     tooltip: am5.Tooltip.new(am5Root, {})
                 })
             );
-            xAxis.data.setAll(data);
 
             let yAxis = chart.yAxes.push(
                 am5xy.ValueAxis.new(am5Root, {
-                    renderer: am5xy.AxisRendererY.new(am5Root, {})
+                    renderer: am5xy.AxisRendererY.new(am5Root, {}),
+                    min: 0,
+                    extraMax: 0.1
                 })
             );
 
-            let series = chart.series.push(
-                am5xy.LineSeries.new(am5Root, {
-                    name: "Sales",
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                    valueYField: "sales",
-                    categoryXField: "month",
-                    tooltip: am5.Tooltip.new(am5Root, {
-                        labelText: "{valueY}"
-                    })
-                })
-            );
+            chartAxis.y.forEach(field => {
+                let series = null;
+                if (chartType === 'bar') {
+                    series = chart.series.push(
+                        am5xy.ColumnSeries.new(am5Root, {
+                            name: field,
+                            xAxis: xAxis,
+                            yAxis: yAxis,
+                            valueYField: field,
+                            valueXField: chartAxis.x,
+                            tooltip: am5.Tooltip.new(am5Root, {
+                                labelText: "{name}: {valueY}"
+                            })
+                        })
+                    );
 
-            series.strokes.template.setAll({
-                strokeWidth: 2,
-                fontSize: 15
-            });
+                    series.columns.template.setAll({
+                        tooltipText: "{name}: {valueY}",
+                        tooltipY: 0,
+                        strokeOpacity: 0
+                    });
+                } else if (chartType === 'line') {
+                    series = chart.series.push(
+                        am5xy.LineSeries.new(am5Root, {
+                            name: field,
+                            xAxis: xAxis,
+                            yAxis: yAxis,
+                            valueYField: field,
+                            valueXField: chartAxis.x,
+                            connect: true,
+                            tooltip: am5.Tooltip.new(am5Root, {
+                                labelText: "{name}: {valueY}"
+                            })
+                        })
+                    );
 
-            series.bullets.push(function() {
-                return am5.Bullet.new(am5Root, {
-                    sprite: am5.Circle.new(am5Root, {
-                        radius: 4,
-                        fill: series.get("fill"),
-                        stroke: am5Root.interfaceColors.get("background"),
-                        strokeWidth: 2
-                    })
+                    series.strokes.template.setAll({
+                        strokeWidth: 2,
+                        strokeOpacity: 0.8,
+                        stroke: am5.color(0x3366cc)
+                    });
+
+                    series.fills.template.setAll({
+                        fillOpacity: 0.2,
+                        visible: true
+                    });
+
+                    series.bullets.push(function() {
+                        return am5.Bullet.new(am5Root, {
+                            sprite: am5.Circle.new(am5Root, {
+                                radius: 4,
+                                fill: series.get("stroke"),
+                                stroke: am5Root.interfaceColors.get("background"),
+                                strokeWidth: 2
+                            })
+                        });
+                    });
+                }
+
+                if (!series) return;
+                series.data.processor = am5.DataProcessor.new(am5Root, {
+                    dateFields: [chartAxis.x],
+                    dateFormat: "yyyy-MM-dd"
+                });
+                series.data.setAll(chartData);
+                series.appear(1000);
+                series.events.once("datavalidated", function() {
+                    chart.zoomOut();
                 });
             });
 
-            series.data.setAll(data);
-            series.appear(1000);
+            let cursor = am5xy.XYCursor.new(am5Root, {
+                behavior: "none",
+                xAxis: xAxis
+            });
+            cursor.lineY.set("visible", false);
+            chart.set("cursor", cursor);
+            cursor.set("snapToSeries", chart.series.values);
+
+            chart.children.push(am5.Legend.new(am5Root, {}));
             chart.appear(1000, 100);
             return chart;
         }
@@ -810,7 +806,36 @@
                 $('#filter-modal').addClass('hidden');
                 $('#chart-loader').removeClass('hidden');
                 setTimeout(() => {
-                    currentDataTable.ajax.reload(null, true);
+                    if (currentDataTable) {
+                        currentDataTable.ajax.reload(null, true);
+                    } else {
+                        $.ajax({
+                            url: `${HOST}/change_context`,
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${API_KEY}`
+                            },
+                            contentType: 'application/json',
+                            data: JSON.stringify(TABLE_FILTERS),
+                            success: function(resp) {
+                                const params = resp?.parameters ?? null;
+                                if (!params) throw new Error();
+
+                                const rows = resp.rows;
+                                const totalRecords = params.total_page * params.size;
+                                tableData = rows;
+                                $('#chart-loader').addClass('hidden');
+                                
+                                showReport(reportTypeActive);
+                            },
+                            error: function(xhr) {
+                                $('#chart-loader').addClass('hidden');
+                                addChatMessage(ERR_MSG.NO_CONTEXT, 'bot');
+                                tableData = [];
+                            }
+                        });
+                    }
                 }, 1000);
             });
 
