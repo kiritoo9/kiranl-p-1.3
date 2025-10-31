@@ -18,5 +18,5 @@ __pycache__/
 venv/
 
 # custom folder and files
-sources/datasets/**/*.jsonl
+sources/datasets/
 history/
