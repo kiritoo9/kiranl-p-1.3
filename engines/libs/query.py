@@ -44,7 +44,7 @@ class Query:
             field = f.get("field")
             val = f.get("value")
 
-            if op is None or field is None or val is None:
+            if op is None or field is None or val is None or field == "":
                 continue
 
             if op.upper() == "ORDER_BY":
@@ -57,7 +57,7 @@ class Query:
                 # where condition here
                 if op.upper() == "BETWEEN":
                     if val is not None and isinstance(val, (list, tuple)) and len(val) >= 2:
-                        where_str.append(f" BETWEEN '{val[0]}' AND '{val[1]}' ")
+                        where_str.append(f" {field} BETWEEN '{val[0]}' AND '{val[1]}' ")
                 else:
                     val = f"'{val}'" if isinstance(val, str) else val
                     where_str.append(f" {field} {op} {val} ")

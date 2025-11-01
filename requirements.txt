@@ -1,5 +1,5 @@
-wordfreq
 sentence_transformers
+wordfreq
 Levenshtein
 numpy
 scikit-learn

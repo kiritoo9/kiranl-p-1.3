@@ -105,6 +105,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+GPU Version
+```bash
+pip install torch==2.4.1+cpu torchvision==0.19.1+cpu torchaudio==2.4.1+cpu --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+```
+
 ## Run
 ```bash
 python app.py

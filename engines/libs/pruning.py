@@ -26,7 +26,7 @@ class Pruning:
 
         # perform to run pruning process
         self.report_detection()
-        self.value_detection()
+        # self.value_detection()
         self.table_detection()
         self.column_prediction()
 

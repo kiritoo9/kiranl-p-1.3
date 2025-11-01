@@ -81,7 +81,9 @@
 
     <div id="welcome-screen" class="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
         <img src="./digi512x512.png" style="width: 100px; height: 100px; object-fit: contain; margin-bottom: 25px;" />
-        <p class="text-gray-600 mb-8 text-center text-base">Your best technology partner.</p>
+        <p class="text-gray-600 mb-8 text-center text-base">
+            Your best technology partner.<br />
+        </p>
 
         <div class="w-full max-w-lg flex shadow rounded-full">
             <input type="text" id="initial-prompt" placeholder="Buatkan laporan tagihan air tahun 2022"
@@ -91,6 +93,9 @@
                 Kirim
             </button>
         </div>
+        <small class="text-gray-600 mt-5">
+            <i>digi-prototype-1.3</i>
+        </small>
     </div>
 
 
@@ -421,7 +426,7 @@
 
                             $("#report-switcher").val(rt).change();
                             showReport(rt);
-                        }, 500);
+                        }, 0);
                     } else {
                         throw new Error();
                     }
@@ -826,7 +831,7 @@
                                 const totalRecords = params.total_page * params.size;
                                 tableData = rows;
                                 $('#chart-loader').addClass('hidden');
-                                
+
                                 showReport(reportTypeActive);
                             },
                             error: function(xhr) {
@@ -836,7 +841,7 @@
                             }
                         });
                     }
-                }, 1000);
+                }, 0);
             });
 
             // init library for date
