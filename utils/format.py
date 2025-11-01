@@ -18,7 +18,7 @@ def is_integer(value):
 
 def validate_output(rows):
     if rows is not None:
-        keys_to_remove = ["created_by", "created_date", "updated_date", "updated_by", "deleted"]
+        keys_to_remove = ["id", "created_by", "created_date", "updated_date", "updated_by", "deleted"]
         return [
             {k: format_date_value(v) for k, v in row.items() if k.lower() not in keys_to_remove}
             for row in rows
