@@ -448,13 +448,12 @@
             });
         }
 
-        function showReport(type) {
+        function showReport(type, callAjax = true) {
             reportTypeActive = type;
-            console.log(type);
             if (type === 'table') {
                 $('#chart-container').hide();
                 $('#table-container').show();
-                initializeDataTable();
+                initializeDataTable(callAjax);
             } else {
                 $('#table-container').hide();
                 $('#chart-container').show();
@@ -500,7 +499,7 @@
         }
 
 
-        function initializeDataTable() {
+        function initializeDataTable(callAjax = true) {
             if (currentDataTable) currentDataTable.destroy();
 
             let columns = [];
@@ -529,7 +528,7 @@
                 serverSide: true,
                 searching: false,
                 ajax: function(data, callback, settings) {
-                    if (tableInitialized) {
+                    if (tableInitialized && callAjax) {
                         // check order by
                         if (data?.order !== undefined && data.order.length > 0) {
                             const orDir = data.order[0]?.dir ?? 'asc';
@@ -774,7 +773,7 @@
 
         function changeReportType(e) {
             const selectedType = $(e).val();
-            showReport(selectedType);
+            showReport(selectedType, false);
         }
 
         $(document).ready(function() {
