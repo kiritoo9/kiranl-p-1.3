@@ -128,7 +128,8 @@
                     <div id="btn-action" class="flex items-center space-x-4" style="display: none;">
                         <div>
                             <select id="report-switcher"
-                                class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                onChange="changeReportType(this)">
                                 <option value="table" selected>Table</option>
                                 <option value="bar">Bar Chart</option>
                                 <option value="line">Line Chart</option>
@@ -396,37 +397,38 @@
 
                         // populating data
                         tableData = rows;
-                        setTimeout(() => {
-                            // hide loading
-                            $('#chart-loader').addClass('hidden');
-                            $('#typing-bubble').remove();
 
-                            // showing report
-                            $('#btn-action').show();
-                            addChatMessage(closingMsg, 'bot');
+                        // hide loading
+                        $('#chart-loader').addClass('hidden');
+                        $('#typing-bubble').remove();
 
-                            // report type
-                            let rt = 'table';
-                            const reportType = response?.report_type?.toLowerCase() ?? 'table';
+                        // showing report
+                        $('#btn-action').show();
+                        addChatMessage(closingMsg, 'bot');
 
-                            if (reportType === "bar_chart") {
-                                rt = "bar";
-                            } else if (reportType === "line_chart") {
-                                rt = "line";
-                            }
+                        // report type
+                        let rt = 'table';
+                        const reportType = response?.report_type?.toLowerCase() ?? 'table';
 
-                            // check axis
-                            if (!chartAxis.x || chartAxis.y.length <= 0) {
-                                rt = "table"; // force to table
+                        if (reportType === "bar_chart") {
+                            rt = "bar";
+                        } else if (reportType === "line_chart") {
+                            rt = "line";
+                        }
 
-                                // hide option to change into chart
-                                for (const op of ['bar', 'line'])
-                                    $(`#report-switcher option[value="${op}"]`).prop('disabled', true);
-                            }
+                        // check axis
+                        if (rt == 'table' || !chartAxis.x || chartAxis.y.length <= 0) {
+                            rt = "table"; // force to table
 
-                            $("#report-switcher").val(rt).change();
-                            showReport(rt);
-                        }, 0);
+                            // hide option to change into chart
+                            for (const op of ['bar', 'line'])
+                                $(`#report-switcher option[value="${op}"]`).prop('disabled', true);
+                        } else {
+                            for (const op of ['bar', 'line'])
+                                $(`#report-switcher option[value="${op}"]`).prop('disabled', false);
+                        }
+
+                        $("#report-switcher").val(rt).change();
                     } else {
                         throw new Error();
                     }
@@ -448,6 +450,7 @@
 
         function showReport(type) {
             reportTypeActive = type;
+            console.log(type);
             if (type === 'table') {
                 $('#chart-container').hide();
                 $('#table-container').show();
@@ -466,11 +469,36 @@
         }
 
         function formatValue(value) {
+            if (value == null || value === '') return '';
+
+            if (typeof value === 'boolean') {
+                return value ? 'YES' : 'NO';
+            }
+
             if (Number.isInteger(value)) {
                 return numeral(value).format('0,0');
             }
+
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                const hasTime = String(value).includes(':');
+
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                const HH = String(date.getHours()).padStart(2, '0');
+                const ii = String(date.getMinutes()).padStart(2, '0');
+                const ss = String(date.getSeconds()).padStart(2, '0');
+
+                if (hasTime) {
+                    return `${yyyy}-${mm}-${dd} ${HH}:${ii}:${ss}`;
+                } else {
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+            }
             return value;
         }
+
 
         function initializeDataTable() {
             if (currentDataTable) currentDataTable.destroy();
@@ -501,7 +529,6 @@
                 serverSide: true,
                 searching: false,
                 ajax: function(data, callback, settings) {
-
                     if (tableInitialized) {
                         // check order by
                         if (data?.order !== undefined && data.order.length > 0) {
@@ -555,16 +582,16 @@
                                 });
                             }
                         });
+                    } else {
+                        const totalRecords = TABLE_PARAMS.total_page * TABLE_PARAMS.size;
+                        tableInitialized = true;
+                        callback({
+                            draw: data.draw,
+                            recordsTotal: totalRecords,
+                            recordsFiltered: totalRecords,
+                            data: tableData
+                        });
                     }
-
-                    const totalRecords = TABLE_PARAMS.total_page * TABLE_PARAMS.size;
-                    tableInitialized = true;
-                    callback({
-                        draw: data.draw,
-                        recordsTotal: totalRecords,
-                        recordsFiltered: totalRecords,
-                        data: tableData
-                    });
                 },
                 columns: columns.map(col => ({
                     data: col.data,
@@ -580,7 +607,7 @@
         function createChart(chartType = 'bar') {
             // another preventive action
             if (!chartType || !chartAxis.x || chartAxis.y.length <= 0) return;
-            let data = tableData;
+            let data = [...tableData];
 
             // converting date into date-object
             data.forEach(d => {
@@ -742,8 +769,12 @@
                     $('#chart-loader').removeClass('hidden');
                     getBotResponse(initialPrompt);
                 }
-
             });
+        }
+
+        function changeReportType(e) {
+            const selectedType = $(e).val();
+            showReport(selectedType);
         }
 
         $(document).ready(function() {
@@ -762,11 +793,6 @@
                 if (e.which === 13) {
                     handleSendChat();
                 }
-            });
-
-            $('#report-switcher').on('change', function() {
-                const selectedType = $(this).val();
-                showReport(selectedType);
             });
 
             $('#filter-btn').on('click', function() {
@@ -810,38 +836,36 @@
                 // re-generate table
                 $('#filter-modal').addClass('hidden');
                 $('#chart-loader').removeClass('hidden');
-                setTimeout(() => {
-                    if (currentDataTable) {
-                        currentDataTable.ajax.reload(null, true);
-                    } else {
-                        $.ajax({
-                            url: `${HOST}/change_context`,
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${API_KEY}`
-                            },
-                            contentType: 'application/json',
-                            data: JSON.stringify(TABLE_FILTERS),
-                            success: function(resp) {
-                                const params = resp?.parameters ?? null;
-                                if (!params) throw new Error();
+                if (currentDataTable) {
+                    currentDataTable.ajax.reload(null, true);
+                } else {
+                    $.ajax({
+                        url: `${HOST}/change_context`,
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}`
+                        },
+                        contentType: 'application/json',
+                        data: JSON.stringify(TABLE_FILTERS),
+                        success: function(resp) {
+                            const params = resp?.parameters ?? null;
+                            if (!params) throw new Error();
 
-                                const rows = resp.rows;
-                                const totalRecords = params.total_page * params.size;
-                                tableData = rows;
-                                $('#chart-loader').addClass('hidden');
+                            const rows = resp.rows;
+                            const totalRecords = params.total_page * params.size;
+                            tableData = rows;
+                            $('#chart-loader').addClass('hidden');
 
-                                showReport(reportTypeActive);
-                            },
-                            error: function(xhr) {
-                                $('#chart-loader').addClass('hidden');
-                                addChatMessage(ERR_MSG.NO_CONTEXT, 'bot');
-                                tableData = [];
-                            }
-                        });
-                    }
-                }, 0);
+                            showReport(reportTypeActive);
+                        },
+                        error: function(xhr) {
+                            $('#chart-loader').addClass('hidden');
+                            addChatMessage(ERR_MSG.NO_CONTEXT, 'bot');
+                            tableData = [];
+                        }
+                    });
+                }
             });
 
             // init library for date

@@ -46,7 +46,7 @@ class Pruning:
         # write logs
         logs.write(
             "info", 
-            "Report type detected!" 
+            f"Report type detected as {self.output.report_type}" 
             if res is not None 
             else "Report type not detected, set to table as default of report type!"
         )
@@ -125,3 +125,8 @@ class Pruning:
 
         if len(res) > 0:
             logs.write("info", f"Found {len(self.output.column_predictions)} columns to select!")
+        else:
+            logs.write("info", f"No specific column to select, registering entire columns")
+
+            for s in schemas:
+                self.output.column_schemas.append(s)

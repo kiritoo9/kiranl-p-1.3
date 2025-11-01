@@ -125,6 +125,8 @@ class Query:
 
 
         col_schemas = self.ctx.column_schemas
+        print(col_schemas)
+
         filters = []
         for col in col_schemas:
             col = col.split(";")
